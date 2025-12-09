@@ -1,0 +1,14 @@
+# Exclude version control metadata
+.git
+.gitignore
+
+# Exclude Go module files that are handled by the Dockerfile
+go.mod
+go.sum
+
+# Exclude README and test files
+README.md
+*.test.go
+
+# Exclude the compiled binary from the build context
+google-secrets-uploader
