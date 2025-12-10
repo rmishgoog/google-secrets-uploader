@@ -1,0 +1,22 @@
+# Binaries for programs
+google-secrets-uploader
+*.exe
+
+# Object files
+*.o
+*.a
+
+# Libraries
+*.so
+*.dll
+
+# Test files
+*.test
+cover.out
+
+# IDE specific files
+.idea/
+.vscode/
+
+# Dependency directories
+vendor/

@@ -4,12 +4,44 @@ A simple command-line utility written in Go to process a spreadsheet and upload 
 
 ## Usage
 
+You must specify a replication policy for the secrets. You can choose between automatic (global) replication or user-managed replication in one or more regions.
+
+**Flags:**
+
+*   `--project-id`: (Required) Your Google Cloud project ID.
+*   `--secrets-file`: (Required) Path to the CSV file containing the secrets.
+*   `--global`: Use automatic replication. The secret will be replicated globally.
+*   `--secrets-location`: Use user-managed replication. Provide a single region or a comma-separated list of regions.
+
+**Note:** You must use either `--global` or `--secrets-location`, but not both.
+
+### Examples
+
+**1. Global Secret (Automatic Replication)**
+
 ```bash
-go run main.go --project-id <your-gcp-project-id> --secrets-file <path-to-your-secrets.csv> --secrets-location <gcp-region>
+go run main.go \
+  --project-id <your-gcp-project-id> \
+  --secrets-file <path-to-your-secrets.csv> \
+  --global
 ```
-Or, after building:
+
+**2. Single-Region Secret (User-Managed Replication)**
+
 ```bash
-./google-secrets-uploader --project-id <your-gcp-project-id> --secrets-file <path-to-your-secrets.csv> --secrets-location <gcp-region>
+go run main.go \
+  --project-id <your-gcp-project-id> \
+  --secrets-file <path-to-your-secrets.csv> \
+  --secrets-location us-central1
+```
+
+**3. Multi-Region Secret (User-Managed Replication)**
+
+```bash
+go run main.go \
+  --project-id <your-gcp-project-id> \
+  --secrets-file <path-to-your-secrets.csv> \
+  --secrets-location us-central1,us-east1,us-west1
 ```
 
 ## Spreadsheet Format
@@ -26,6 +58,10 @@ name,value
 my-secret-1,my-super-secret-value
 my-secret-2,another-secret
 ```
+
+## Security Note
+
+:warning: **Do not check in CSV files with real passwords, secrets, or any other confidential information into version control.** The sample CSV files in this repository are for testing purposes only.
 
 ## Setup
 
@@ -48,6 +84,8 @@ docker build -t google-secrets-uploader .
 
 When running the container, you need to mount your secrets file and your Google Cloud credentials into the container.
 
+**Example (Single-Region):**
+
 ```bash
 docker run --rm \
   -v $(pwd)/secrets.csv:/app/secrets.csv \
@@ -55,7 +93,19 @@ docker run --rm \
   google-secrets-uploader \
   --project-id <your-gcp-project-id> \
   --secrets-file /app/secrets.csv \
-  --secrets-location <gcp-region>
+  --secrets-location us-central1
+```
+
+**Example (Global):**
+
+```bash
+docker run --rm \
+  -v $(pwd)/secrets.csv:/app/secrets.csv \
+  -v ~/.config/gcloud/application_default_credentials.json:/root/.config/gcloud/application_default_credentials.json \
+  google-secrets-uploader \
+  --project-id <your-gcp-project-id> \
+  --secrets-file /app/secrets.csv \
+  --global
 ```
 
 **Volume Mounts Explained:**

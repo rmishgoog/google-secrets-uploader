@@ -23,13 +23,20 @@ type Secret struct {
 func main() {
 	projectID := flag.String("project-id", "", "your Google cloud project")
 	secretsFile := flag.String("secrets-file", "", "path to the CSV file containing secrets (name,value)")
-	location := flag.String("secrets-location", "", "location of the secrets created")
+	location := flag.String("secrets-location", "", "comma-separated list of locations for user-managed replication")
+	global := flag.Bool("global", false, "use automatic replication (global secret)")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	if *projectID == "" || *secretsFile == "" || *location == "" {
-		logger.Error("project-id and secrets-file are required and so the locaton")
+	if *projectID == "" || *secretsFile == "" {
+		logger.Error("project-id and secrets-file are required")
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	if (*global && *location != "") || (!*global && *location == "") {
+		logger.Error("either --global or --secrets-location must be provided, but not both")
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -42,7 +49,7 @@ func main() {
 
 	logger.Info("found secrets to upload", "count", len(secrets))
 
-	err = uploadSecrets(logger, *projectID, *location, secrets)
+	err = uploadSecrets(logger, *projectID, *location, *global, secrets)
 	if err != nil {
 		logger.Error("error uploading secrets", "error", err)
 		os.Exit(1)
@@ -87,13 +94,33 @@ func readSecretsCSV(filePath string) ([]Secret, error) {
 	return secrets, nil
 }
 
-func uploadSecrets(logger *slog.Logger, projectID string, location string, secrets []Secret) error {
+func uploadSecrets(logger *slog.Logger, projectID string, location string, global bool, secrets []Secret) error {
 	ctx := context.Background()
 	client, err := secretmanager.NewClient(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to create secretmanager client: %w", err)
 	}
 	defer client.Close()
+
+	replication := &secretmanagerpb.Replication{}
+	if global {
+		replication.Replication = &secretmanagerpb.Replication_Automatic_{
+			Automatic: &secretmanagerpb.Replication_Automatic{},
+		}
+	} else {
+		locations := strings.Split(location, ",")
+		var replicas []*secretmanagerpb.Replication_UserManaged_Replica
+		for _, loc := range locations {
+			replicas = append(replicas, &secretmanagerpb.Replication_UserManaged_Replica{
+				Location: loc,
+			})
+		}
+		replication.Replication = &secretmanagerpb.Replication_UserManaged_{
+			UserManaged: &secretmanagerpb.Replication_UserManaged{
+				Replicas: replicas,
+			},
+		}
+	}
 
 	for _, secret := range secrets {
 		parent := fmt.Sprintf("projects/%s", projectID)
@@ -112,17 +139,7 @@ func uploadSecrets(logger *slog.Logger, projectID string, location string, secre
 					Parent:   parent,
 					SecretId: secretName,
 					Secret: &secretmanagerpb.Secret{
-						Replication: &secretmanagerpb.Replication{
-							Replication: &secretmanagerpb.Replication_UserManaged_{
-								UserManaged: &secretmanagerpb.Replication_UserManaged{
-									Replicas: []*secretmanagerpb.Replication_UserManaged_Replica{
-										{
-											Location: location,
-										},
-									},
-								},
-							},
-						},
+						Replication: replication,
 					},
 				})
 				if err != nil {
