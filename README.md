@@ -61,7 +61,7 @@ my-secret-2,another-secret
 
 ## Security Note
 
-:warning: **Do not check in CSV files with real passwords, secrets, or any other confidential information into version control.**
+:warning: **This repository is public. Please, do not check-in files with credentials, secrets, keys or any other confidential information into version control. Author is not responsible for any data loss or theft on the internet**
 
 ## Setup
 
