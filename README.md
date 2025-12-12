@@ -61,7 +61,7 @@ my-secret-2,another-secret
 
 ## Security Note
 
-:warning: **Do not check in CSV files with real passwords, secrets, or any other confidential information into version control.** The sample CSV files in this repository are for testing purposes only.
+:warning: **Do not check in CSV files with real passwords, secrets, or any other confidential information into version control.**.
 
 ## Setup
 
